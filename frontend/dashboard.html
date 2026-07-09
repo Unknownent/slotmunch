@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 {
+      color: #333;
+    }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      color: #555;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .tab-btn.active {
+      background: #ff6b35;
+      color: white;
+    }
+
+    .orders-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .order-card {
+      background: white;
+      padding: 18px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .order-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .order-info h3 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .order-info p {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .order-amount {
+      font-weight: bold;
+      color: #ff6b35;
+      font-size: 18px;
+    }
+
+    .order-items {
+      background: #f9f9f9;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .order-notes {
+      font-size: 13px;
+      color: #888;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: capitalize;
+    }
+
+    .badge.pending { background: #fff3cd; color: #856404; }
+    .badge.preparing { background: #cce5ff; color: #004085; }
+    .badge.ready { background: #d4edda; color: #155724; }
+    .badge.collected { background: #e2e3e5; color: #383d41; }
+
+    .payment-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
+    .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
+    .payment-badge.confirmed { background: #d4edda; color: #155724; }
+
+    .order-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .order-actions button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-status { background: #007bff; color: white; }
+    .btn-payment { background: #28a745; color: white; }
+
+    .btn-status:hover { background: #0069d9; }
+    .btn-payment:hover { background: #218838; }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px;
+      background: white;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2 id="welcomeMsg">Restaurant Dashboard</h2>
+    <div>
+      <button onclick="window.location.href='menu-management.html'">Manage Menu</button>
+      <button onclick="window.location.href='staff-management.html'">Manage Staff</button>
+      <button onclick="window.location.href='analytics.html'">Analytics</button>
+      <button onclick="loadOrders()">Refresh</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="activeTabBtn" onclick="switchTab('active')">Active Orders</button>
+    <button class="tab-btn" id="completedTabBtn" onclick="switchTab('completed')">Completed Orders</button>
+  </div>
+
+  <div class="orders-container" id="ordersContainer">
+    Loading orders...
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+    let allOrders = [];
+    let currentTab = 'active';
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    } else if (staff.role !== 'restaurant_staff') {
+      window.location.href = 'menu.html';
+    } else {
+      document.getElementById('welcomeMsg').textContent = `Restaurant Dashboard - ${staff.full_name}`;
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('activeTabBtn').classList.toggle('active', tab === 'active');
+      document.getElementById('completedTabBtn').classList.toggle('active', tab === 'completed');
+      renderOrders();
+    }
+
+    async function loadOrders() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/orders');
+        allOrders = await response.json();
+        renderOrders();
+      } catch (err) {
+        document.getElementById('ordersContainer').innerHTML = '<div class="empty-state">Could not load orders. Is the server running?</div>';
+      }
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersContainer');
+
+      const filtered = allOrders.filter(order => 
+        currentTab === 'active' ? order.status !== 'collected' : order.status === 'collected'
+      );
+
+      if (filtered.length === 0) {
+        const msg = currentTab === 'active' ? 'No active orders right now' : 'No completed orders yet';
+        container.innerHTML = `<div class="empty-state">${msg}</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      filtered.forEach(order => {
+        const div = document.createElement('div');
+        div.className = 'order-card';
+
+        const date = new Date(order.order_time);
+        const formattedDate = date.toLocaleString();
+
+        const itemsList = order.items.map(item => 
+          `${item.name} x${item.quantity}`
+        ).join(', ');
+
+        let actionsHTML = '<div class="order-actions">';
+
+        if (order.status === 'pending') {
+          actionsHTML += `<button class="btn-status" onclick="updateOrder(${order.order_id}, 'preparing')">Start Preparing</button>`;
+        } else if (order.status === 'preparing') {
+          actionsHTML += `<button class="btn-status" onclick="updateOrder(${order.order_id}, 'ready')">Mark as Ready</button>`;
+        } else if (order.status === 'ready') {
+          actionsHTML += `<button class="btn-status" onclick="updateOrder(${order.order_id}, 'collected')">Mark as Collected</button>`;
+        }
+
+        if (order.payment_status === 'unpaid') {
+          actionsHTML += `<button class="btn-payment" onclick="confirmPayment(${order.order_id})">Confirm Payment</button>`;
+        }
+
+        actionsHTML += '</div>';
+
+        div.innerHTML = `
+          <div class="order-top">
+            <div class="order-info">
+              <h3>Order #${order.order_id} — ${order.staff_name}</h3>
+              <p>${formattedDate}</p>
+            </div>
+            <div class="order-amount">₦${order.total_amount.toLocaleString()}</div>
+          </div>
+          <div class="order-items">${itemsList}</div>
+          ${order.notes ? `<div class="order-notes">Note: ${order.notes}</div>` : ''}
+          <div>
+            <span class="badge ${order.status}">${order.status}</span>
+            <span class="payment-badge ${order.payment_status}">${order.payment_status}</span>
+          </div>
+          ${actionsHTML}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function updateOrder(orderId, newStatus) {
+      try {
+        await fetch(`http://127.0.0.1:5000/orders/${orderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        loadOrders();
+      } catch (err) {
+        alert('Could not update order');
+      }
+    }
+
+    async function confirmPayment(orderId) {
+      try {
+        await fetch(`http://127.0.0.1:5000/orders/${orderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            payment_status: 'confirmed',
+            validated_by: staff.staff_id
+          })
+        });
+        loadOrders();
+      } catch (err) {
+        alert('Could not update payment');
+      }
+    }
+
+    loadOrders();
+  </script>
+
+</body>
+</html>

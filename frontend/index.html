@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>canteen login</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #FF6B35;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .login-box {
+      background: rgba(18, 6, 65, 0.596);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 320px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .login-box p {
+      color: #777;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      background-color: turquoise;
+      color: gray;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer; 
+    }
+
+    .login-box button:hover {
+      background-color: turquoise;
+    }
+
+    .error-msg {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-box">
+    <h1>Slot Munch</h1>
+    <p>Enter your Staff ID to continue</p>
+
+    <input type="text" id="staffId" placeholder="e.g. STF001">
+    <button onclick="login()">Login</button>
+
+    <div class="error-msg" id="errorMsg">Staff ID not found</div>
+  </div>
+
+  <script>
+    async function login() {
+      const staffId = document.getElementById('staffId').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+
+      if (!staffId) {
+        errorMsg.textContent = "Please enter your Staff ID";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('staff', JSON.stringify(data));
+
+          if (data.role === 'restaurant_staff') {
+            window.location.href = 'dashboard.html';
+          } else {
+            window.location.href = 'menu.html';
+          }
+        } else {
+          errorMsg.textContent = data.error || "Login failed";
+          errorMsg.style.display = "block";
+        }
+      } catch (err) {
+        errorMsg.textContent = "Could not connect to server";
+        errorMsg.style.display = "block";
+      }
+    }
+
+    document.getElementById('staffId').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        login();
+      }
+    });
+  </script>
+
+</body>
+</html>

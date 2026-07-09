@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Staff</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: lightgray;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #FF6B35;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 { color: #333; }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .form-section {
+      flex: 1;
+      min-width: 280px;
+      background: lightslategray;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+
+    .form-section h3 { margin-bottom: 15px; color: #333; }
+
+    .form-section input,
+    .form-section select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid gainsboro;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .form-section button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .form-section button:hover { background-color: #218838; }
+
+    .list-section {
+      flex: 2;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .list-section h3 { margin-bottom: 15px; color: #333; }
+
+    .search-bar {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .staff-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .staff-row:last-child { border-bottom: none; }
+
+    .staff-info h4 { font-size: 15px; color: #333; }
+    .staff-info p { font-size: 13px; color: #888; margin-top: 2px; }
+
+    .role-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .role-badge.worker { background: #cce5ff; color: #004085; }
+    .role-badge.restaurant_staff { background: #fff3cd; color: #856404; }
+
+    .staff-actions { display: flex; gap: 8px; }
+
+    .staff-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-edit { background: #007bff; color: white; }
+    .btn-delete { background: #dc3545; color: white; }
+
+    .success-msg, .error-msg {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .success-msg { background: #d4edda; color: #155724; }
+    .error-msg { background: #f8d7da; color: #721c24; }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Manage Staff</h2>
+    <div>
+      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="form-section">
+      <h3 id="formTitle">Add New Staff</h3>
+      <div class="success-msg" id="successMsg"></div>
+      <div class="error-msg" id="errorMsg"></div>
+
+      <input type="hidden" id="editStaffId">
+      <input type="text" id="staffId" placeholder="Staff ID (e.g. STF004)">
+      <input type="text" id="fullName" placeholder="Full Name">
+      <input type="text" id="department" placeholder="Department">
+      <select id="role">
+        <option value="worker">Worker</option>
+        <option value="restaurant_staff">Restaurant Staff</option>
+      </select>
+      <input type="email" id="email" placeholder="Email">
+      <input type="text" id="floorNumber" placeholder="Floor Number (e.g. 1st Floor, Ground Floor)">
+      <button onclick="saveStaff()" id="saveBtn">Add Staff</button>
+      <button onclick="resetForm()" style="background:#6c757d; display:none;" id="cancelBtn">Cancel Edit</button>
+    </div>
+
+    <div class="list-section">
+      <h3>All Staff Members</h3>
+      <input type="text" class="search-bar" id="searchBar" placeholder="Search by name, ID or department..." oninput="filterStaff()">
+      <div id="staffList">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+    let allStaff = [];
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    } else if (staff.role !== 'restaurant_staff') {
+      window.location.href = 'menu.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    function showMessage(type, text) {
+      const successEl = document.getElementById('successMsg');
+      const errorEl = document.getElementById('errorMsg');
+      successEl.style.display = 'none';
+      errorEl.style.display = 'none';
+
+      if (type === 'success') {
+        successEl.textContent = text;
+        successEl.style.display = 'block';
+      } else {
+        errorEl.textContent = text;
+        errorEl.style.display = 'block';
+      }
+
+      setTimeout(() => {
+        successEl.style.display = 'none';
+        errorEl.style.display = 'none';
+      }, 3000);
+    }
+
+    async function loadStaff() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/staff');
+        allStaff = await response.json();
+        renderStaff(allStaff);
+      } catch (err) {
+        document.getElementById('staffList').innerHTML = '<div class="empty-state">Could not load staff. Is the server running?</div>';
+      }
+    }
+
+    function filterStaff() {
+      const query = document.getElementById('searchBar').value.toLowerCase();
+      const filtered = allStaff.filter(s =>
+        s.full_name.toLowerCase().includes(query) ||
+        s.staff_id.toLowerCase().includes(query) ||
+        (s.department || '').toLowerCase().includes(query)
+      );
+      renderStaff(filtered);
+    }
+
+    function renderStaff(staffList) {
+      const container = document.getElementById('staffList');
+
+      if (staffList.length === 0) {
+        container.innerHTML = '<div class="empty-state">No staff found</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      staffList.forEach(member => {
+        const div = document.createElement('div');
+        div.className = 'staff-row';
+        div.innerHTML = `
+          <div class="staff-info">
+            <h4>${member.full_name} <span style="font-size:12px; color:#aaa;">(${member.staff_id})</span></h4>
+            <p>${member.department || 'No department'} • Floor: ${member.floor_number || 'N/A'} • ${member.email || 'No email'}</p>
+            <span class="role-badge ${member.role}">${member.role === 'restaurant_staff' ? 'Restaurant Staff' : 'Worker'}</span>
+          </div>
+          <div class="staff-actions">
+            <button class="btn-edit" onclick="editStaff('${member.staff_id}', '${member.full_name.replace(/'/g, "\\'")}', '${(member.department || '').replace(/'/g, "\\'")}', '${member.role}', '${(member.email || '').replace(/'/g, "\\'")}', '${(member.floor_number || '').replace(/'/g, "\\'")}')">Edit</button>
+            <button class="btn-delete" onclick="deleteStaff('${member.staff_id}', '${member.full_name.replace(/'/g, "\\'")}')">Delete</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function editStaff(id, fullName, department, role, email, floorNumber) {
+      document.getElementById('formTitle').textContent = 'Edit Staff Member';
+      document.getElementById('editStaffId').value = id;
+      document.getElementById('staffId').value = id;
+      document.getElementById('staffId').disabled = true;
+      document.getElementById('fullName').value = fullName;
+      document.getElementById('department').value = department;
+      document.getElementById('role').value = role;
+      document.getElementById('email').value = email;
+      document.getElementById('floorNumber').value = floorNumber || '';
+      document.getElementById('saveBtn').textContent = 'Update Staff';
+      document.getElementById('cancelBtn').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function resetForm() {
+      document.getElementById('formTitle').textContent = 'Add New Staff';
+      document.getElementById('editStaffId').value = '';
+      document.getElementById('staffId').value = '';
+      document.getElementById('staffId').disabled = false;
+      document.getElementById('fullName').value = '';
+      document.getElementById('department').value = '';
+      document.getElementById('role').value = 'worker';
+      document.getElementById('email').value = '';
+      document.getElementById('floorNumber').value = '';
+      document.getElementById('saveBtn').textContent = 'Add Staff';
+      document.getElementById('cancelBtn').style.display = 'none';
+    }
+
+    async function saveStaff() {
+      const editId = document.getElementById('editStaffId').value;
+      const staffId = document.getElementById('staffId').value.trim();
+      const fullName = document.getElementById('fullName').value.trim();
+      const department = document.getElementById('department').value.trim();
+      const role = document.getElementById('role').value;
+      const email = document.getElementById('email').value.trim();
+      const floorNumber = document.getElementById('floorNumber').value.trim();
+
+      if (!staffId || !fullName || !role) {
+        showMessage('error', 'Staff ID, full name and role are required');
+        return;
+      }
+
+      try {
+        let response;
+        if (editId) {
+          response = await fetch(`http://127.0.0.1:5000/staff/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ full_name: fullName, department, role, email, floor_number: floorNumber })
+          });
+        } else {
+          response = await fetch('http://127.0.0.1:5000/staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id: staffId, full_name: fullName, department, role, email, floor_number: floorNumber })
+          });
+        }
+
+        if (response.ok) {
+          showMessage('success', editId ? 'Staff updated!' : 'Staff added!');
+          resetForm();
+          loadStaff();
+        } else {
+          const data = await response.json();
+          showMessage('error', data.error || 'Failed to save staff member');
+        }
+      } catch (err) {
+        showMessage('error', 'Could not connect to server');
+      }
+    }
+
+    async function deleteStaff(staffId, name) {
+      if (!confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/staff/${staffId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showMessage('success', 'Staff member deleted');
+          loadStaff();
+        } else {
+          showMessage('error', 'Failed to delete staff member');
+        }
+      } catch (err) {
+        showMessage('error', 'Could not connect to server');
+      }
+    }
+
+    loadStaff();
+  </script>
+
+</body>
+</html>

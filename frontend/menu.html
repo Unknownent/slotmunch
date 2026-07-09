@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canteen Menu</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: rgb(76,47,181, 0.295);
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 {
+      color: #333;
+    }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .menu-section {
+      flex: 2;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item-info h3 {
+      font-size: 16px;
+      color: #333;
+    }
+
+    .menu-item-info p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .menu-item-info .price {
+      color: #ff6b35;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+
+    .menu-item button {
+      background-color: #ff6b35;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .menu-item button:hover {
+      background-color: #e85a2a;
+    }
+
+    .cart-section {
+      flex: 1;
+      background: whitesmoke;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      min-width: 250px;
+      height: fit-content;
+    }
+
+    .cart-section h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cart-item button {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #eee;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .place-order-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .place-order-btn:hover {
+      background-color: #218838;
+    }
+
+    .place-order-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .empty-cart {
+      color: #999;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .success-msg {
+      background: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2 id="welcomeMsg">Welcome!</h2>
+    <div>
+      <button onclick="window.location.href='orders.html'">My Orders</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="menu-section">
+      <h3 style="margin-bottom: 15px;">Today's Menu</h3>
+      <div id="menuList">Loading menu...</div>
+    </div>
+
+    <div class="cart-section">
+      <h3>Your Cart</h3>
+      <div id="cartList">
+        <div class="empty-cart">Your cart is empty</div>
+      </div>
+      <div class="cart-total">
+        <span>Total</span>
+        <span id="cartTotal">₦0</span>
+      </div>
+      <button class="place-order-btn" id="placeOrderBtn" onclick="placeOrder()" disabled>Place Order</button>
+      <div class="success-msg" id="successMsg">Order placed successfully! ✅</div>
+    </div>
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+    let cart = {};
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    } else {
+      document.getElementById('welcomeMsg').textContent = `Welcome, ${staff.full_name}`;
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    async function loadMenu() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/menu');
+        const items = await response.json();
+
+        const menuList = document.getElementById('menuList');
+        menuList.innerHTML = '';
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'menu-item';
+          div.innerHTML = `
+            <div class="menu-item-info">
+              <h3>${item.name}</h3>
+              <p>${item.description || ''}</p>
+              <div class="price">₦${item.price.toLocaleString()}</div>
+            </div>
+            <button onclick="addToCart(${item.item_id}, '${item.name}', ${item.price})">Add</button>
+          `;
+          menuList.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById('menuList').textContent = 'Could not load menu. Is the server running?';
+      }
+    }
+
+    function addToCart(itemId, name, price) {
+      if (cart[itemId]) {
+        cart[itemId].quantity += 1;
+      } else {
+        cart[itemId] = { name, price, quantity: 1 };
+      }
+      renderCart();
+    }
+
+    function removeFromCart(itemId) {
+      delete cart[itemId];
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartList = document.getElementById('cartList');
+      const placeOrderBtn = document.getElementById('placeOrderBtn');
+      const keys = Object.keys(cart);
+
+      if (keys.length === 0) {
+        cartList.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
+        placeOrderBtn.disabled = true;
+      } else {
+        cartList.innerHTML = '';
+        keys.forEach(itemId => {
+          const item = cart[itemId];
+          const div = document.createElement('div');
+          div.className = 'cart-item';
+          div.innerHTML = `
+            <span>${item.name} x${item.quantity}</span>
+            <div>
+              <span>₦${(item.price * item.quantity).toLocaleString()}</span>
+              <button onclick="removeFromCart(${itemId})">×</button>
+            </div>
+          `;
+          cartList.appendChild(div);
+        });
+        placeOrderBtn.disabled = false;
+      }
+
+      let total = 0;
+      keys.forEach(itemId => {
+        total += cart[itemId].price * cart[itemId].quantity;
+      });
+      document.getElementById('cartTotal').textContent = `₦${total.toLocaleString()}`;
+    }
+
+    async function placeOrder() {
+      const items = Object.keys(cart).map(itemId => ({
+        item_id: parseInt(itemId),
+        quantity: cart[itemId].quantity,
+        price: cart[itemId].price
+      }));
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staff_id: staff.staff_id,
+            items: items
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('successMsg').style.display = 'block';
+          cart = {};
+          renderCart();
+          setTimeout(() => {
+            document.getElementById('successMsg').style.display = 'none';
+          }, 3000);
+        } else {
+          alert(data.error || 'Failed to place order');
+        }
+      } catch (err) {
+        alert('Could not connect to server');
+      }
+    }
+
+    loadMenu();
+  </script>
+
+</body>
+</html>

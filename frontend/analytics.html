@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 { color: #333; }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+
+    .stat-card .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #ff6b35;
+      margin-bottom: 6px;
+    }
+
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .chart-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .chart-card h3 {
+      font-size: 15px;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    /* Status breakdown */
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .status-row:last-child { border-bottom: none; }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .dot-pending { background: #ffc107; }
+    .dot-preparing { background: #007bff; }
+    .dot-ready { background: #28a745; }
+    .dot-collected { background: #6c757d; }
+
+    /* Top items bar chart */
+    .bar-row {
+      margin-bottom: 12px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .bar-track {
+      background: #f0f0f0;
+      border-radius: 4px;
+      height: 10px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: #ff6b35;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    /* Revenue chart */
+    .revenue-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 120px;
+      padding-top: 10px;
+    }
+
+    .revenue-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .revenue-bar {
+      width: 100%;
+      background: #ff6b35;
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.5s ease;
+    }
+
+    .revenue-day {
+      font-size: 10px;
+      color: #888;
+      text-align: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Analytics</h2>
+    <div>
+      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Summary Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="ordersToday">-</div>
+      <div class="stat-label">Orders Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="revenueToday">-</div>
+      <div class="stat-label">Revenue Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="totalOrders">-</div>
+      <div class="stat-label">Total Orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="totalRevenue">-</div>
+      <div class="stat-label">Total Revenue</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+
+    <!-- Orders by status -->
+    <div class="chart-card">
+      <h3>Orders by Status</h3>
+      <div id="statusBreakdown">Loading...</div>
+    </div>
+
+    <!-- Top items -->
+    <div class="chart-card">
+      <h3>Top 5 Most Ordered Items</h3>
+      <div id="topItems">Loading...</div>
+    </div>
+
+    <!-- Revenue last 7 days -->
+    <div class="chart-card">
+      <h3>Revenue — Last 7 Days</h3>
+      <div id="revenueChart">Loading...</div>
+    </div>
+
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    } else if (staff.role !== 'restaurant_staff') {
+      window.location.href = 'menu.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    const STATUS_COLORS = {
+      pending: 'dot-pending',
+      preparing: 'dot-preparing',
+      ready: 'dot-ready',
+      collected: 'dot-collected'
+    };
+
+    async function loadAnalytics() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/analytics');
+        const data = await response.json();
+
+        // Summary stats
+        document.getElementById('ordersToday').textContent = data.orders_today;
+        document.getElementById('revenueToday').textContent = `₦${data.revenue_today.toLocaleString()}`;
+        document.getElementById('totalOrders').textContent = data.total_orders;
+        document.getElementById('totalRevenue').textContent = `₦${data.total_revenue.toLocaleString()}`;
+
+        // Orders by status
+        const statusEl = document.getElementById('statusBreakdown');
+        if (Object.keys(data.status_counts).length === 0) {
+          statusEl.innerHTML = '<div class="empty-state">No orders yet</div>';
+        } else {
+          statusEl.innerHTML = '';
+          const statuses = ['pending', 'preparing', 'ready', 'collected'];
+          statuses.forEach(status => {
+            const count = data.status_counts[status] || 0;
+            const div = document.createElement('div');
+            div.className = 'status-row';
+            div.innerHTML = `
+              <span>
+                <span class="status-dot ${STATUS_COLORS[status]}"></span>
+                ${status.charAt(0).toUpperCase() + status.slice(1)}
+              </span>
+              <strong>${count}</strong>
+            `;
+            statusEl.appendChild(div);
+          });
+        }
+
+        // Top items
+        const topItemsEl = document.getElementById('topItems');
+        if (data.top_items.length === 0) {
+          topItemsEl.innerHTML = '<div class="empty-state">No orders yet</div>';
+        } else {
+          topItemsEl.innerHTML = '';
+          const maxQty = data.top_items[0].quantity;
+          data.top_items.forEach(item => {
+            const pct = Math.round((item.quantity / maxQty) * 100);
+            const div = document.createElement('div');
+            div.className = 'bar-row';
+            div.innerHTML = `
+              <div class="bar-label">
+                <span>${item.name}</span>
+                <span>${item.quantity} orders</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: ${pct}%"></div>
+              </div>
+            `;
+            topItemsEl.appendChild(div);
+          });
+        }
+
+        // Revenue last 7 days
+        const revenueEl = document.getElementById('revenueChart');
+        if (data.revenue_by_day.length === 0) {
+          revenueEl.innerHTML = '<div class="empty-state">No revenue data yet</div>';
+        } else {
+          const maxRevenue = Math.max(...data.revenue_by_day.map(d => d.revenue));
+          const barsHTML = data.revenue_by_day.map(day => {
+            const heightPct = maxRevenue > 0 ? Math.round((day.revenue / maxRevenue) * 100) : 0;
+            const date = new Date(day.day);
+            const label = date.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' });
+            return `
+              <div class="revenue-bar-wrap">
+                <div class="revenue-bar" style="height: ${heightPct}%"></div>
+                <div class="revenue-day">${label}</div>
+              </div>
+            `;
+          }).join('');
+
+          revenueEl.innerHTML = `<div class="revenue-row">${barsHTML}</div>`;
+        }
+
+      } catch (err) {
+        document.querySelector('.stats-grid').innerHTML = '<p style="color:red; padding:10px;">Could not load analytics. Is the server running?</p>';
+      }
+    }
+
+    loadAnalytics();
+  </script>
+
+</body>
+</html>

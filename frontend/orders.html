@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 {
+      color: #333;
+    }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .orders-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .order-card {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .order-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .order-info h3 {
+      font-size: 15px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .order-info p {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .order-amount {
+      font-weight: bold;
+      color: #ff6b35;
+      font-size: 16px;
+    }
+
+    .order-items {
+      background: #f9f9f9;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: capitalize;
+    }
+
+    .badge.pending { background: #fff3cd; color: #856404; }
+    .badge.preparing { background: #cce5ff; color: #004085; }
+    .badge.ready { background: #d4edda; color: #155724; }
+    .badge.collected { background: #e2e3e5; color: #383d41; }
+
+    .payment-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
+    .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
+    .payment-badge.confirmed { background: #d4edda; color: #155724; }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px;
+      background: white;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2 id="welcomeMsg">My Orders</h2>
+    <div>
+      <button onclick="window.location.href='menu.html'">Back to Menu</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="orders-container" id="ordersContainer">
+    Loading orders...
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    async function loadOrders() {
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/orders/${staff.staff_id}`);
+        const orders = await response.json();
+
+        const container = document.getElementById('ordersContainer');
+
+        if (orders.length === 0) {
+          container.innerHTML = '<div class="empty-state">You have no orders yet</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        orders.forEach(order => {
+          const div = document.createElement('div');
+          div.className = 'order-card';
+
+          const date = new Date(order.order_time);
+          const formattedDate = date.toLocaleString();
+
+          const itemsList = order.items.map(item => 
+            `${item.name} x${item.quantity}`
+          ).join(', ');
+
+          div.innerHTML = `
+            <div class="order-top">
+              <div class="order-info">
+                <h3>Order #${order.order_id}</h3>
+                <p>${formattedDate}</p>
+              </div>
+              <div class="order-amount">₦${order.total_amount.toLocaleString()}</div>
+            </div>
+            <div class="order-items">${itemsList}</div>
+            <div>
+              <span class="badge ${order.status}">${order.status}</span>
+              <span class="payment-badge ${order.payment_status}">${order.payment_status}</span>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById('ordersContainer').innerHTML = '<div class="empty-state">Could not load orders. Is the server running?</div>';
+      }
+    }
+
+    loadOrders();
+  </script>
+
+</body>
+</html>

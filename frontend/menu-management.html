@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Menu</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    header h2 { color: #333; }
+
+    header button {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .form-section {
+      flex: 1;
+      min-width: 280px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+
+    .form-section h3 { margin-bottom: 15px; color: #333; }
+
+    .form-section input,
+    .form-section select,
+    .form-section textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .form-section button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .form-section button:hover { background-color: #218838; }
+
+    .list-section {
+      flex: 2;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .list-section h3 { margin-bottom: 15px; color: #333; }
+
+    .menu-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .menu-item-row:last-child { border-bottom: none; }
+
+    .item-info h4 { font-size: 15px; color: #333; }
+    .item-info p { font-size: 13px; color: #888; margin-top: 2px; }
+    .item-info .price { color: #ff6b35; font-weight: bold; margin-top: 4px; }
+
+    .item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .item-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-edit { background: #007bff; color: white; }
+    .btn-delete { background: #dc3545; color: white; }
+    .btn-toggle { background: #6c757d; color: white; }
+
+    .unavailable { opacity: 0.5; }
+
+    .success-msg, .error-msg {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .success-msg { background: #d4edda; color: #155724; }
+    .error-msg { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Manage Menu</h2>
+    <div>
+      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="form-section">
+      <h3 id="formTitle">Add New Item</h3>
+      <div class="success-msg" id="successMsg">Saved successfully!</div>
+      <div class="error-msg" id="errorMsg">Something went wrong</div>
+
+      <input type="hidden" id="editItemId">
+      <input type="text" id="itemName" placeholder="Item name">
+      <select id="itemCategory">
+        <option value="Main">Main</option>
+        <option value="Protein">Protein</option>
+        <option value="Drinks">Drinks</option>
+        <option value="Sides">Sides</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="number" id="itemPrice" placeholder="Price (₦)" step="0.01">
+      <textarea id="itemDescription" placeholder="Description" rows="3"></textarea>
+      <button onclick="saveItem()" id="saveBtn">Add Item</button>
+      <button onclick="resetForm()" style="background:#6c757d; margin-top:8px; display:none;" id="cancelBtn">Cancel Edit</button>
+    </div>
+
+    <div class="list-section">
+      <h3>Current Menu Items</h3>
+      <div id="menuList">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    let staff = JSON.parse(localStorage.getItem('staff'));
+
+    if (!staff) {
+      window.location.href = 'index.html';
+    } else if (staff.role !== 'restaurant_staff') {
+      window.location.href = 'menu.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('staff');
+      window.location.href = 'index.html';
+    }
+
+    function showMessage(type, text) {
+      const successEl = document.getElementById('successMsg');
+      const errorEl = document.getElementById('errorMsg');
+      successEl.style.display = 'none';
+      errorEl.style.display = 'none';
+
+      if (type === 'success') {
+        successEl.textContent = text;
+        successEl.style.display = 'block';
+      } else {
+        errorEl.textContent = text;
+        errorEl.style.display = 'block';
+      }
+
+      setTimeout(() => {
+        successEl.style.display = 'none';
+        errorEl.style.display = 'none';
+      }, 3000);
+    }
+
+    async function loadMenu() {
+      try {
+        // Fetch ALL items including unavailable ones - we'll use a slight workaround
+        const response = await fetch('http://127.0.0.1:5000/menu/all');
+        let items;
+        if (response.ok) {
+          items = await response.json();
+        } else {
+          // Fallback if /menu/all doesn't exist yet
+          const fallback = await fetch('http://127.0.0.1:5000/menu');
+          items = await fallback.json();
+        }
+
+        const menuList = document.getElementById('menuList');
+        menuList.innerHTML = '';
+
+        if (items.length === 0) {
+          menuList.innerHTML = '<p style="color:#999;">No menu items yet</p>';
+          return;
+        }
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'menu-item-row' + (item.is_available === false || item.is_available === 0 ? ' unavailable' : '');
+          div.innerHTML = `
+            <div class="item-info">
+              <h4>${item.name} <span style="font-size:12px; color:#888;">(${item.category || 'Uncategorized'})</span></h4>
+              <p>${item.description || ''}</p>
+              <div class="price">₦${Number(item.price).toLocaleString()}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-toggle" onclick="toggleAvailability(${item.item_id}, ${item.is_available === false || item.is_available === 0})">
+                ${item.is_available === false || item.is_available === 0 ? 'Mark Available' : 'Mark Unavailable'}
+              </button>
+              <button class="btn-edit" onclick="editItem(${item.item_id}, '${item.name.replace(/'/g, "\\'")}', '${(item.category || '').replace(/'/g, "\\'")}', ${item.price}, '${(item.description || '').replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn-delete" onclick="deleteItem(${item.item_id})">Delete</button>
+            </div>
+          `;
+          menuList.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById('menuList').textContent = 'Could not load menu. Is the server running?';
+      }
+    }
+
+    function editItem(id, name, category, price, description) {
+      document.getElementById('formTitle').textContent = 'Edit Item';
+      document.getElementById('editItemId').value = id;
+      document.getElementById('itemName').value = name;
+      document.getElementById('itemCategory').value = category || 'Other';
+      document.getElementById('itemPrice').value = price;
+      document.getElementById('itemDescription').value = description;
+      document.getElementById('saveBtn').textContent = 'Update Item';
+      document.getElementById('cancelBtn').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function resetForm() {
+      document.getElementById('formTitle').textContent = 'Add New Item';
+      document.getElementById('editItemId').value = '';
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemCategory').value = 'Main';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemDescription').value = '';
+      document.getElementById('saveBtn').textContent = 'Add Item';
+      document.getElementById('cancelBtn').style.display = 'none';
+    }
+
+    async function saveItem() {
+      const id = document.getElementById('editItemId').value;
+      const name = document.getElementById('itemName').value.trim();
+      const category = document.getElementById('itemCategory').value;
+      const price = document.getElementById('itemPrice').value;
+      const description = document.getElementById('itemDescription').value.trim();
+
+      if (!name || !price) {
+        showMessage('error', 'Name and price are required');
+        return;
+      }
+
+      try {
+        let response;
+        if (id) {
+          response = await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, category, price: parseFloat(price), description })
+          });
+        } else {
+          response = await fetch('http://127.0.0.1:5000/menu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, category, price: parseFloat(price), description })
+          });
+        }
+
+        if (response.ok) {
+          showMessage('success', id ? 'Item updated!' : 'Item added!');
+          resetForm();
+          loadMenu();
+        } else {
+          const data = await response.json();
+          showMessage('error', data.error || 'Failed to save item');
+        }
+      } catch (err) {
+        showMessage('error', 'Could not connect to server');
+      }
+    }
+
+    async function toggleAvailability(id, makeAvailable) {
+      try {
+        await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_available: makeAvailable })
+        });
+        loadMenu();
+      } catch (err) {
+        showMessage('error', 'Could not update item');
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('Are you sure you want to delete this item?')) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showMessage('success', 'Item deleted');
+          loadMenu();
+        } else {
+          showMessage('error', 'Failed to delete item');
+        }
+      } catch (err) {
+        showMessage('error', 'Could not connect to server');
+      }
+    }
+
+    loadMenu();
+  </script>
+
+</body>
+</html>
