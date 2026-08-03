@@ -232,7 +232,7 @@
 
     async function loadStaff() {
       try {
-        const response = await fetch('http://127.0.0.1:5000/staff');
+        const response = await fetch('/staff');
         allStaff = await response.json();
         renderStaff(allStaff);
       } catch (err) {
@@ -323,13 +323,13 @@
       try {
         let response;
         if (editId) {
-          response = await fetch(`http://127.0.0.1:5000/staff/${editId}`, {
+          response = await fetch(`/staff/${editId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ full_name: fullName, department, role, email, floor_number: floorNumber })
           });
         } else {
-          response = await fetch('http://127.0.0.1:5000/staff', {
+          response = await fetch('/staff', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ staff_id: staffId, full_name: fullName, department, role, email, floor_number: floorNumber })
@@ -353,7 +353,7 @@
       if (!confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) return;
 
       try {
-        const response = await fetch(`http://127.0.0.1:5000/staff/${staffId}`, {
+        const response = await fetch(`/staff/${staffId}`, {
           method: 'DELETE'
         });
 

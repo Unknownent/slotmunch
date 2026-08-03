@@ -208,13 +208,13 @@
     async function loadMenu() {
       try {
         // Fetch ALL items including unavailable ones - we'll use a slight workaround
-        const response = await fetch('http://127.0.0.1:5000/menu/all');
+        const response = await fetch('/menu/all');
         let items;
         if (response.ok) {
           items = await response.json();
         } else {
           // Fallback if /menu/all doesn't exist yet
-          const fallback = await fetch('http://127.0.0.1:5000/menu');
+          const fallback = await fetch('/menu');
           items = await fallback.json();
         }
 
@@ -288,13 +288,13 @@
       try {
         let response;
         if (id) {
-          response = await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+          response = await fetch(`/menu/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, category, price: parseFloat(price), description })
           });
         } else {
-          response = await fetch('http://127.0.0.1:5000/menu', {
+          response = await fetch('/menu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, category, price: parseFloat(price), description })
@@ -316,7 +316,7 @@
 
     async function toggleAvailability(id, makeAvailable) {
       try {
-        await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+        await fetch(`/menu/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_available: makeAvailable })
@@ -331,7 +331,7 @@
       if (!confirm('Are you sure you want to delete this item?')) return;
 
       try {
-        const response = await fetch(`http://127.0.0.1:5000/menu/${id}`, {
+        const response = await fetch(`/menu/${id}`, {
           method: 'DELETE'
         });
 

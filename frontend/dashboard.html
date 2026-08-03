@@ -222,7 +222,7 @@
 
     async function loadOrders() {
       try {
-        const response = await fetch('http://127.0.0.1:5000/orders');
+        const response = await fetch('/orders');
         allOrders = await response.json();
         renderOrders();
       } catch (err) {
@@ -293,7 +293,7 @@
 
     async function updateOrder(orderId, newStatus) {
       try {
-        await fetch(`http://127.0.0.1:5000/orders/${orderId}`, {
+        await fetch(`/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
@@ -306,7 +306,7 @@
 
     async function confirmPayment(orderId) {
       try {
-        await fetch(`http://127.0.0.1:5000/orders/${orderId}`, {
+        await fetch(`/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

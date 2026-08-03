@@ -149,7 +149,7 @@
 
     async function loadOrders() {
       try {
-        const response = await fetch(`http://127.0.0.1:5000/orders/${staff.staff_id}`);
+        const response = await fetch(`/orders/${staff.staff_id}`);
         const orders = await response.json();
 
         const container = document.getElementById('ordersContainer');

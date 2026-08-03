@@ -227,7 +227,7 @@
 
     async function loadMenu() {
       try {
-        const response = await fetch('http://127.0.0.1:5000/menu');
+        const response = await fetch('/menu');
         const items = await response.json();
 
         const menuList = document.getElementById('menuList');
@@ -306,7 +306,7 @@
       }));
 
       try {
-        const response = await fetch('http://127.0.0.1:5000/orders', {
+        const response = await fetch('/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

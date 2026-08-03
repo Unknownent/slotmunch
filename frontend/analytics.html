@@ -253,7 +253,7 @@
 
     async function loadAnalytics() {
       try {
-        const response = await fetch('http://127.0.0.1:5000/analytics');
+        const response = await fetch('/analytics');
         const data = await response.json();
 
         // Summary stats
