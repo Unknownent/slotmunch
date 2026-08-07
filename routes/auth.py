@@ -18,8 +18,8 @@ def login():
         if not staff:
             return jsonify({"error": "Staff ID not found"}), 404
 
-        # DictCursor returns column names as keys, so this reads more
-        # safely than the old index-based staff[0] / staff[3] pattern.
+    
+        
         return jsonify({
             "staff_id": staff["staff_id"],
             "role": staff["role"],

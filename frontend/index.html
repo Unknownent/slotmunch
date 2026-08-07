@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>canteen login</title>
+  <title>SLOT MUNCH</title>
   <style>
     * {
       margin: 0;
@@ -76,9 +76,10 @@
 
   <div class="login-box">
     <h1>Slot Munch</h1>
-    <p>Enter your Staff ID to continue</p>
+    <p>Enter your Staff ID and password to continue</p>
 
     <input type="text" id="staffId" placeholder="e.g. STF001">
+    <input type="password" id="password" placeholder="Password">
     <button onclick="login()">Login</button>
 
     <div class="error-msg" id="errorMsg">Staff ID not found</div>
@@ -87,10 +88,11 @@
   <script>
     async function login() {
       const staffId = document.getElementById('staffId').value.trim();
+      const password = document.getElementById('password').value;
       const errorMsg = document.getElementById('errorMsg');
 
-      if (!staffId) {
-        errorMsg.textContent = "Please enter your Staff ID";
+      if (!staffId || !password) {
+        errorMsg.textContent = "Please enter your Staff ID and password";
         errorMsg.style.display = "block";
         return;
       }
@@ -99,7 +101,7 @@
         const response = await fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ staff_id: staffId })
+          body: JSON.stringify({ staff_id: staffId, password: password })
         });
 
         const data = await response.json();
@@ -123,6 +125,12 @@
     }
 
     document.getElementById('staffId').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('password').focus();
+      }
+    });
+
+    document.getElementById('password').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         login();
       }
