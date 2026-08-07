@@ -179,7 +179,7 @@
     <h2 id="welcomeMsg">Restaurant Dashboard</h2>
     <div>
       <button onclick="window.location.href='menu-management.html'">Manage Menu</button>
-      <button onclick="window.location.href='staff-management.html'">Manage Staff</button>
+      <button id="manageStaffBtn" onclick="window.location.href='staff-management.html'">Manage Staff</button>
       <button onclick="window.location.href='analytics.html'">Analytics</button>
       <button onclick="loadOrders()">Refresh</button>
       <button onclick="logout()">Logout</button>
@@ -202,10 +202,13 @@
 
     if (!staff) {
       window.location.href = 'index.html';
-    } else if (staff.role !== 'restaurant_staff') {
+    } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
       window.location.href = 'menu.html';
     } else {
       document.getElementById('welcomeMsg').textContent = `Restaurant Dashboard - ${staff.full_name}`;
+      if (staff.role !== 'admin') {
+        document.getElementById('manageStaffBtn').style.display = 'none';
+      }
     }
 
     function logout() {

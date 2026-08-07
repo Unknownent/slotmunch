@@ -125,6 +125,7 @@
 
     .role-badge.worker { background: #cce5ff; color: #004085; }
     .role-badge.restaurant_staff { background: #fff3cd; color: #856404; }
+    .role-badge.admin { background: #d4edda; color: #155724; }
 
     .staff-actions { display: flex; gap: 8px; }
 
@@ -181,9 +182,11 @@
       <select id="role">
         <option value="worker">Worker</option>
         <option value="restaurant_staff">Restaurant Staff</option>
+        <option value="admin">Admin</option>
       </select>
       <input type="email" id="email" placeholder="Email">
       <input type="text" id="floorNumber" placeholder="Floor Number (e.g. 1st Floor, Ground Floor)">
+      <input type="password" id="password" placeholder="Password (leave blank to keep unchanged)">
       <button onclick="saveStaff()" id="saveBtn">Add Staff</button>
       <button onclick="resetForm()" style="background:#6c757d; display:none;" id="cancelBtn">Cancel Edit</button>
     </div>
@@ -201,7 +204,7 @@
 
     if (!staff) {
       window.location.href = 'index.html';
-    } else if (staff.role !== 'restaurant_staff') {
+    } else if (staff.role !== 'admin') {
       window.location.href = 'menu.html';
     }
 
@@ -262,11 +265,12 @@
       staffList.forEach(member => {
         const div = document.createElement('div');
         div.className = 'staff-row';
+        const roleLabel = member.role === 'restaurant_staff' ? 'Restaurant Staff' : (member.role === 'admin' ? 'Admin' : 'Worker');
         div.innerHTML = `
           <div class="staff-info">
             <h4>${member.full_name} <span style="font-size:12px; color:#aaa;">(${member.staff_id})</span></h4>
             <p>${member.department || 'No department'} • Floor: ${member.floor_number || 'N/A'} • ${member.email || 'No email'}</p>
-            <span class="role-badge ${member.role}">${member.role === 'restaurant_staff' ? 'Restaurant Staff' : 'Worker'}</span>
+            <span class="role-badge ${member.role}">${roleLabel}</span>
           </div>
           <div class="staff-actions">
             <button class="btn-edit" onclick="editStaff('${member.staff_id}', '${member.full_name.replace(/'/g, "\\'")}', '${(member.department || '').replace(/'/g, "\\'")}', '${member.role}', '${(member.email || '').replace(/'/g, "\\'")}', '${(member.floor_number || '').replace(/'/g, "\\'")}')">Edit</button>
@@ -287,6 +291,7 @@
       document.getElementById('role').value = role;
       document.getElementById('email').value = email;
       document.getElementById('floorNumber').value = floorNumber || '';
+      document.getElementById('password').value = '';
       document.getElementById('saveBtn').textContent = 'Update Staff';
       document.getElementById('cancelBtn').style.display = 'block';
       window.scrollTo(0, 0);
@@ -302,6 +307,7 @@
       document.getElementById('role').value = 'worker';
       document.getElementById('email').value = '';
       document.getElementById('floorNumber').value = '';
+      document.getElementById('password').value = '';
       document.getElementById('saveBtn').textContent = 'Add Staff';
       document.getElementById('cancelBtn').style.display = 'none';
     }
@@ -314,25 +320,38 @@
       const role = document.getElementById('role').value;
       const email = document.getElementById('email').value.trim();
       const floorNumber = document.getElementById('floorNumber').value.trim();
+      const password = document.getElementById('password').value;
 
       if (!staffId || !fullName || !role) {
         showMessage('error', 'Staff ID, full name and role are required');
         return;
       }
 
+      if (!editId && !password) {
+        showMessage('error', 'Password is required for new staff');
+        return;
+      }
+
       try {
         let response;
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Staff-Id': staff.staff_id
+        };
+
         if (editId) {
+          const body = { full_name: fullName, department, role, email, floor_number: floorNumber };
+          if (password) body.password = password;
           response = await fetch(`/staff/${editId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_name: fullName, department, role, email, floor_number: floorNumber })
+            headers,
+            body: JSON.stringify(body)
           });
         } else {
           response = await fetch('/staff', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staff_id: staffId, full_name: fullName, department, role, email, floor_number: floorNumber })
+            headers,
+            body: JSON.stringify({ staff_id: staffId, full_name: fullName, department, role, email, floor_number: floorNumber, password })
           });
         }
 
@@ -354,7 +373,8 @@
 
       try {
         const response = await fetch(`/staff/${staffId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: { 'X-Staff-Id': staff.staff_id }
         });
 
         if (response.ok) {
