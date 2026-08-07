@@ -235,7 +235,7 @@
 
     if (!staff) {
       window.location.href = 'index.html';
-    } else if (staff.role !== 'restaurant_staff') {
+    } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
       window.location.href = 'menu.html';
     }
 
