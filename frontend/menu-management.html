@@ -5,9 +5,9 @@
     (function() {
       const staff = JSON.parse(localStorage.getItem('staff') || 'null');
       if (!staff) {
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-        window.location.href = 'menu.html';
+        window.location.href = 'menu';
       }
     })();
   </script>
@@ -149,7 +149,7 @@
   <header>
     <h2>Manage Menu</h2>
     <div>
-      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="window.location.href='dashboard'">Back to Dashboard</button>
       <button onclick="logout()">Logout</button>
     </div>
   </header>
@@ -185,14 +185,14 @@
     let staff = JSON.parse(localStorage.getItem('staff'));
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-      window.location.href = 'menu.html';
+      window.location.href = 'menu';
     }
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     function showMessage(type, text) {
@@ -217,13 +217,11 @@
 
     async function loadMenu() {
       try {
-        // Fetch ALL items including unavailable ones - we'll use a slight workaround
         const response = await fetch('/menu/all');
         let items;
         if (response.ok) {
           items = await response.json();
         } else {
-          // Fallback if /menu/all doesn't exist yet
           const fallback = await fetch('/menu');
           items = await fallback.json();
         }

@@ -126,7 +126,7 @@
   <header>
     <h2 id="welcomeMsg">My Orders</h2>
     <div>
-      <button onclick="window.location.href='menu.html'">Back to Menu</button>
+      <button onclick="window.location.href='menu'">Back to Menu</button>
       <button onclick="logout()">Logout</button>
     </div>
   </header>
@@ -139,12 +139,12 @@
     let staff = JSON.parse(localStorage.getItem('staff'));
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     async function loadOrders() {

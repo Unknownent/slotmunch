@@ -110,9 +110,9 @@
           localStorage.setItem('staff', JSON.stringify(data));
 
           if (data.role === 'restaurant_staff' || data.role === 'admin') {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'dashboard';
           } else {
-            window.location.href = 'menu.html';
+            window.location.href = 'menu';
           }
         } else {
           errorMsg.textContent = data.error || "Login failed";

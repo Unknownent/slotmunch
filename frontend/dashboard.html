@@ -5,9 +5,9 @@
     (function() {
       const staff = JSON.parse(localStorage.getItem('staff') || 'null');
       if (!staff) {
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-        window.location.href = 'menu.html';
+        window.location.href = 'menu';
       }
     })();
   </script>
@@ -188,9 +188,9 @@
   <header>
     <h2 id="welcomeMsg">Restaurant Dashboard</h2>
     <div>
-      <button onclick="window.location.href='menu-management.html'">Manage Menu</button>
-      <button id="manageStaffBtn" onclick="window.location.href='staff-management.html'">Manage Staff</button>
-      <button onclick="window.location.href='analytics.html'">Analytics</button>
+      <button onclick="window.location.href='menu-management'">Manage Menu</button>
+      <button id="manageStaffBtn" onclick="window.location.href='staff-management'">Manage Staff</button>
+      <button onclick="window.location.href='analytics'">Analytics</button>
       <button onclick="loadOrders()">Refresh</button>
       <button onclick="logout()">Logout</button>
     </div>
@@ -211,9 +211,9 @@
     let currentTab = 'active';
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-      window.location.href = 'menu.html';
+      window.location.href = 'menu';
     } else {
       document.getElementById('welcomeMsg').textContent = `Restaurant Dashboard - ${staff.full_name}`;
       if (staff.role !== 'admin') {
@@ -223,7 +223,7 @@
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     function switchTab(tab) {

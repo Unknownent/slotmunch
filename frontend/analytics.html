@@ -5,9 +5,9 @@
     (function() {
       const staff = JSON.parse(localStorage.getItem('staff') || 'null');
       if (!staff) {
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-        window.location.href = 'menu.html';
+        window.location.href = 'menu';
       }
     })();
   </script>
@@ -94,7 +94,6 @@
       margin-bottom: 15px;
     }
 
-    /* Status breakdown */
     .status-row {
       display: flex;
       justify-content: space-between;
@@ -119,7 +118,6 @@
     .dot-ready { background: #28a745; }
     .dot-collected { background: #6c757d; }
 
-    /* Top items bar chart */
     .bar-row {
       margin-bottom: 12px;
     }
@@ -146,7 +144,6 @@
       transition: width 0.5s ease;
     }
 
-    /* Revenue chart */
     .revenue-row {
       display: flex;
       align-items: flex-end;
@@ -192,12 +189,11 @@
   <header>
     <h2>Analytics</h2>
     <div>
-      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="window.location.href='dashboard'">Back to Dashboard</button>
       <button onclick="logout()">Logout</button>
     </div>
   </header>
 
-  <!-- Summary Stats -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-value" id="ordersToday">-</div>
@@ -217,22 +213,18 @@
     </div>
   </div>
 
-  <!-- Charts -->
   <div class="charts-grid">
 
-    <!-- Orders by status -->
     <div class="chart-card">
       <h3>Orders by Status</h3>
       <div id="statusBreakdown">Loading...</div>
     </div>
 
-    <!-- Top items -->
     <div class="chart-card">
       <h3>Top 5 Most Ordered Items</h3>
       <div id="topItems">Loading...</div>
     </div>
 
-    <!-- Revenue last 7 days -->
     <div class="chart-card">
       <h3>Revenue — Last 7 Days</h3>
       <div id="revenueChart">Loading...</div>
@@ -244,14 +236,14 @@
     let staff = JSON.parse(localStorage.getItem('staff'));
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
-      window.location.href = 'menu.html';
+      window.location.href = 'menu';
     }
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     const STATUS_COLORS = {
@@ -266,13 +258,11 @@
         const response = await fetch('/analytics');
         const data = await response.json();
 
-        // Summary stats
         document.getElementById('ordersToday').textContent = data.orders_today;
         document.getElementById('revenueToday').textContent = `₦${data.revenue_today.toLocaleString()}`;
         document.getElementById('totalOrders').textContent = data.total_orders;
         document.getElementById('totalRevenue').textContent = `₦${data.total_revenue.toLocaleString()}`;
 
-        // Orders by status
         const statusEl = document.getElementById('statusBreakdown');
         if (Object.keys(data.status_counts).length === 0) {
           statusEl.innerHTML = '<div class="empty-state">No orders yet</div>';
@@ -294,7 +284,6 @@
           });
         }
 
-        // Top items
         const topItemsEl = document.getElementById('topItems');
         if (data.top_items.length === 0) {
           topItemsEl.innerHTML = '<div class="empty-state">No orders yet</div>';
@@ -318,7 +307,6 @@
           });
         }
 
-        // Revenue last 7 days
         const revenueEl = document.getElementById('revenueChart');
         if (data.revenue_by_day.length === 0) {
           revenueEl.innerHTML = '<div class="empty-state">No revenue data yet</div>';

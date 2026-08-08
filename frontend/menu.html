@@ -185,7 +185,7 @@
   <header>
     <h2 id="welcomeMsg">Welcome!</h2>
     <div>
-      <button onclick="window.location.href='orders.html'">My Orders</button>
+      <button onclick="window.location.href='orders'">My Orders</button>
       <button onclick="logout()">Logout</button>
     </div>
   </header>
@@ -215,14 +215,14 @@
     let cart = {};
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     } else {
       document.getElementById('welcomeMsg').textContent = `Welcome, ${staff.full_name}`;
     }
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     async function loadMenu() {

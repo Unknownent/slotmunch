@@ -23,8 +23,18 @@ app.register_blueprint(analytics_bp)
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):
-    if path and os.path.exists(os.path.join(app.static_folder, path)):
+    if path == '':
+        return send_from_directory(app.static_folder, 'index.html')
+
+    full_path = os.path.join(app.static_folder, path)
+
+    if os.path.isfile(full_path):
         return send_from_directory(app.static_folder, path)
+
+    html_path = f"{path}.html"
+    if os.path.isfile(os.path.join(app.static_folder, html_path)):
+        return send_from_directory(app.static_folder, html_path)
+
     return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':

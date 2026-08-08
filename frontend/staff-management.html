@@ -5,9 +5,9 @@
     (function() {
       const staff = JSON.parse(localStorage.getItem('staff') || 'null');
       if (!staff) {
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } else if (staff.role !== 'admin') {
-        window.location.href = 'menu.html';
+        window.location.href = 'menu';
       }
     })();
   </script>
@@ -174,7 +174,7 @@
   <header>
     <h2>Manage Staff</h2>
     <div>
-      <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      <button onclick="window.location.href='dashboard'">Back to Dashboard</button>
       <button onclick="logout()">Logout</button>
     </div>
   </header>
@@ -213,14 +213,14 @@
     let allStaff = [];
 
     if (!staff) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
     } else if (staff.role !== 'admin') {
-      window.location.href = 'menu.html';
+      window.location.href = 'menu';
     }
 
     function logout() {
       localStorage.removeItem('staff');
-      window.location.href = 'index.html';
+      window.location.href = '/';
     }
 
     function showMessage(type, text) {
