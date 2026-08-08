@@ -245,7 +245,7 @@
 
     async function loadStaff() {
       try {
-        const response = await fetch('/staff');
+        const response = await fetch('/api/staff');
         allStaff = await response.json();
         renderStaff(allStaff);
       } catch (err) {
@@ -352,13 +352,13 @@
         if (editId) {
           const body = { full_name: fullName, department, role, email, floor_number: floorNumber };
           if (password) body.password = password;
-          response = await fetch(`/staff/${editId}`, {
+          response = await fetch(`/api/staff/${editId}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify(body)
           });
         } else {
-          response = await fetch('/staff', {
+          response = await fetch('/api/staff', {
             method: 'POST',
             headers,
             body: JSON.stringify({ staff_id: staffId, full_name: fullName, department, role, email, floor_number: floorNumber, password })
@@ -382,7 +382,7 @@
       if (!confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) return;
 
       try {
-        const response = await fetch(`/staff/${staffId}`, {
+        const response = await fetch(`/api/staff/${staffId}`, {
           method: 'DELETE',
           headers: { 'X-Staff-Id': staff.staff_id }
         });

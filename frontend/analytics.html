@@ -255,7 +255,7 @@
 
     async function loadAnalytics() {
       try {
-        const response = await fetch('/analytics');
+        const response = await fetch('/api/analytics');
         const data = await response.json();
 
         document.getElementById('ordersToday').textContent = data.orders_today;

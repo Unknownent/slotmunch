@@ -14,11 +14,11 @@ from routes.orders import orders_bp
 from routes.staff import staff_bp
 from routes.analytics import analytics_bp
 
-app.register_blueprint(auth_bp)
-app.register_blueprint(menu_bp)
-app.register_blueprint(orders_bp)
-app.register_blueprint(staff_bp)
-app.register_blueprint(analytics_bp)
+app.register_blueprint(auth_bp, url_prefix='/api')
+app.register_blueprint(menu_bp, url_prefix='/api')
+app.register_blueprint(orders_bp, url_prefix='/api')
+app.register_blueprint(staff_bp, url_prefix='/api')
+app.register_blueprint(analytics_bp, url_prefix='/api')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

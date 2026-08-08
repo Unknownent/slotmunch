@@ -235,7 +235,7 @@
 
     async function loadOrders() {
       try {
-        const response = await fetch('/orders');
+        const response = await fetch('/api/orders');
         allOrders = await response.json();
         renderOrders();
       } catch (err) {
@@ -306,7 +306,7 @@
 
     async function updateOrder(orderId, newStatus) {
       try {
-        await fetch(`/orders/${orderId}`, {
+        await fetch(`/api/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
@@ -319,7 +319,7 @@
 
     async function confirmPayment(orderId) {
       try {
-        await fetch(`/orders/${orderId}`, {
+        await fetch(`/api/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
