@@ -147,9 +147,11 @@
       font-size: 12px;
       font-weight: bold;
       margin-left: 8px;
+      text-transform: capitalize;
     }
 
     .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
+    .payment-badge.claimed { background: #fff3cd; color: #856404; }
     .payment-badge.confirmed { background: #d4edda; color: #155724; }
 
     .order-actions {
@@ -278,8 +280,9 @@
           actionsHTML += `<button class="btn-status" onclick="updateOrder(${order.order_id}, 'collected')">Mark as Collected</button>`;
         }
 
-        if (order.payment_status === 'unpaid') {
-          actionsHTML += `<button class="btn-payment" onclick="confirmPayment(${order.order_id})">Confirm Payment</button>`;
+        if (order.payment_status !== 'confirmed') {
+          const label = order.payment_status === 'claimed' ? 'Confirm Payment (customer claims paid)' : 'Confirm Payment';
+          actionsHTML += `<button class="btn-payment" onclick="confirmPayment(${order.order_id})">${label}</button>`;
         }
 
         actionsHTML += '</div>';

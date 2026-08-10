@@ -138,6 +138,29 @@ def update_order(order_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+            # Guard payment_status transitions so an order can't skip
+            # states or regress (e.g. confirmed -> unpaid)
+            if payment_status:
+                cursor.execute(
+                    "SELECT payment_status FROM orders WHERE order_id = %s",
+                    (order_id,)
+                )
+                current = cursor.fetchone()
+                if not current:
+                    return jsonify({'error': 'Order not found'}), 404
+
+                current_status = current['payment_status']
+
+                valid_transition = (
+                    (payment_status == 'claimed' and current_status == 'unpaid') or
+                    (payment_status == 'confirmed' and current_status in ('unpaid', 'claimed'))
+                )
+
+                if not valid_transition:
+                    return jsonify({
+                        'error': f'Cannot change payment status from {current_status} to {payment_status}'
+                    }), 400
+
             cursor.execute(
                 """UPDATE orders 
                    SET status = COALESCE(%s, status),
