@@ -74,7 +74,7 @@ def get_all_orders():
                     'order_id': order['order_id'],
                     'staff_id': order['staff_id'],
                     'staff_name': order['full_name'],
-                    'order_time': str(order['order_time']),
+                    'order_time': order['order_time'].isoformat()+'z',
                     'status': order['status'],
                     'total_amount': float(order['total_amount']),
                     'payment_status': order['payment_status'],
@@ -115,7 +115,7 @@ def get_orders(staff_id):
 
                 result.append({
                     'order_id': order['order_id'],
-                    'order_time': str(order['order_time']),
+                    'order_time': order['order_time'].isoformat()+'z',
                     'status': order['status'],
                     'total_amount': float(order['total_amount']),
                     'payment_status': order['payment_status'],
