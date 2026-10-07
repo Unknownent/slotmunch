@@ -17,6 +17,31 @@
       padding: 20px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes badgePulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes sectionIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -26,6 +51,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeIn 0.4s ease both;
     }
 
     header h2 {
@@ -51,6 +77,11 @@
       padding: 15px 20px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* Only added to cards that are new, so reloading after a payment claim doesn't replay it */
+    .order-card.enter {
+      animation: fadeUp 0.4s ease both;
     }
 
     .order-top {
@@ -89,6 +120,7 @@
     }
 
     .badge {
+      display: inline-block;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -102,6 +134,7 @@
     .badge.collected { background: #e2e3e5; color: #383d41; }
 
     .payment-badge {
+      display: inline-block;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -113,6 +146,16 @@
     .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
     .payment-badge.claimed { background: #fff3cd; color: #856404; }
     .payment-badge.confirmed { background: #d4edda; color: #155724; }
+
+    .badge.changed,
+    .payment-badge.changed {
+      animation: badgePulse 0.5s ease;
+    }
+
+    /* Wraps the payment panel and button, and fades in when payment status changes */
+    .payment-section.changed {
+      animation: sectionIn 0.4s ease both;
+    }
 
     .payment-panel {
       background: #fff9ec;
@@ -133,6 +176,7 @@
     }
 
     .btn-claim {
+      position: relative;
       margin-top: 8px;
       background: #ff6b35;
       color: white;
@@ -145,6 +189,27 @@
     }
 
     .btn-claim:hover { background: #e85a2a; }
+
+    .btn-claim.loading,
+    .btn-claim.loading:hover {
+      background: #ff6b35;
+      color: transparent;
+      cursor: wait;
+    }
+
+    .btn-claim.loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
 
     .claimed-note {
       margin-top: 8px;
@@ -159,6 +224,15 @@
       padding: 40px;
       background: white;
       border-radius: 8px;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 </head>
@@ -178,6 +252,10 @@
 
   <script>
     let staff = JSON.parse(localStorage.getItem('staff'));
+
+    // Remembers what has already been shown so only new or changed orders animate
+    const seenOrders = new Set();
+    const lastState = {};
 
     // TODO: replace with the canteen's real account details
     const PAYMENT_ACCOUNT = {
@@ -218,7 +296,7 @@
           <p>${PAYMENT_ACCOUNT.accountName}</p>
           <p>${PAYMENT_ACCOUNT.bankName} — ${PAYMENT_ACCOUNT.accountNumber}</p>
         </div>
-        <button class="btn-claim" onclick="claimPayment(${order.order_id})">I've Made the Transfer</button>
+        <button class="btn-claim" onclick="claimPayment(${order.order_id}, this)">I've Made the Transfer</button>
       `;
     }
 
@@ -235,9 +313,26 @@
         }
 
         container.innerHTML = '';
+        let newCount = 0;
+
         orders.forEach(order => {
           const div = document.createElement('div');
           div.className = 'order-card';
+
+          const state = `${order.status}|${order.payment_status}`;
+          let pulse = '';
+          let sectionClass = 'payment-section';
+
+          if (!seenOrders.has(order.order_id)) {
+            div.classList.add('enter');
+            div.style.animationDelay = `${Math.min(newCount, 8) * 0.06}s`;
+            newCount++;
+          } else if (lastState[order.order_id] !== state) {
+            pulse = 'changed';
+            sectionClass += ' changed';
+          }
+          seenOrders.add(order.order_id);
+          lastState[order.order_id] = state;
 
           const date = new Date(order.order_time);
           const formattedDate = date.toLocaleString();
@@ -256,10 +351,10 @@
             </div>
             <div class="order-items">${itemsList}</div>
             <div>
-              <span class="badge ${order.status}">${order.status}</span>
-              <span class="payment-badge ${order.payment_status}">${order.payment_status}</span>
+              <span class="badge ${order.status} ${pulse}">${order.status}</span>
+              <span class="payment-badge ${order.payment_status} ${pulse}">${order.payment_status}</span>
             </div>
-            ${paymentSectionHTML(order)}
+            <div class="${sectionClass}">${paymentSectionHTML(order)}</div>
           `;
           container.appendChild(div);
         });
@@ -268,7 +363,13 @@
       }
     }
 
-    async function claimPayment(orderId) {
+    async function claimPayment(orderId, btn) {
+      // Disabled while sending, which also blocks double taps on a slow connection
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+      }
+
       try {
         await fetch(`/api/orders/${orderId}`, {
           method: 'PUT',
@@ -277,6 +378,10 @@
         });
         loadOrders();
       } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
         alert('Could not update payment status. Please try again.');
       }
     }

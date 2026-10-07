@@ -27,6 +27,22 @@
       padding: 20px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes badgePulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -36,6 +52,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeIn 0.4s ease both;
     }
 
     header h2 {
@@ -54,6 +71,7 @@
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
+      animation: fadeUp 0.4s ease 0.08s both;
     }
 
     .tab-btn {
@@ -84,6 +102,11 @@
       padding: 18px 20px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* Only added to cards that are new or on a tab switch, so refreshes don't replay it */
+    .order-card.enter {
+      animation: fadeUp 0.4s ease both;
     }
 
     .order-top {
@@ -129,6 +152,7 @@
     }
 
     .badge {
+      display: inline-block;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -142,6 +166,7 @@
     .badge.collected { background: #e2e3e5; color: #383d41; }
 
     .payment-badge {
+      display: inline-block;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -153,6 +178,11 @@
     .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
     .payment-badge.claimed { background: #fff3cd; color: #856404; }
     .payment-badge.confirmed { background: #d4edda; color: #155724; }
+
+    .badge.changed,
+    .payment-badge.changed {
+      animation: badgePulse 0.5s ease;
+    }
 
     .order-actions {
       display: flex;
@@ -182,6 +212,15 @@
       padding: 40px;
       background: white;
       border-radius: 8px;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 </head>
@@ -212,6 +251,10 @@
     let allOrders = [];
     let currentTab = 'active';
 
+    // Remembers what has already been shown so only new or changed orders animate
+    const seenOrders = new Set();
+    const lastState = {};
+
     if (!staff) {
       window.location.href = '/';
     } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
@@ -232,20 +275,30 @@
       currentTab = tab;
       document.getElementById('activeTabBtn').classList.toggle('active', tab === 'active');
       document.getElementById('completedTabBtn').classList.toggle('active', tab === 'completed');
-      renderOrders();
+      renderOrders({ animateAll: true });
     }
 
     async function loadOrders() {
       try {
         const response = await fetch('/api/orders');
         allOrders = await response.json();
-        renderOrders();
+
+        const changedIds = new Set();
+        allOrders.forEach(order => {
+          const state = `${order.status}|${order.payment_status}`;
+          if (lastState[order.order_id] !== undefined && lastState[order.order_id] !== state) {
+            changedIds.add(order.order_id);
+          }
+          lastState[order.order_id] = state;
+        });
+
+        renderOrders({ changedIds });
       } catch (err) {
         document.getElementById('ordersContainer').innerHTML = '<div class="empty-state">Could not load orders. Is the server running?</div>';
       }
     }
 
-    function renderOrders() {
+    function renderOrders({ animateAll = false, changedIds = new Set() } = {}) {
       const container = document.getElementById('ordersContainer');
 
       const filtered = allOrders.filter(order => 
@@ -259,9 +312,21 @@
       }
 
       container.innerHTML = '';
+      let newCount = 0;
+
       filtered.forEach(order => {
         const div = document.createElement('div');
         div.className = 'order-card';
+
+        const isNew = animateAll || !seenOrders.has(order.order_id);
+        if (isNew) {
+          div.classList.add('enter');
+          div.style.animationDelay = `${Math.min(newCount, 8) * 0.06}s`;
+          newCount++;
+        }
+        seenOrders.add(order.order_id);
+
+        const pulse = changedIds.has(order.order_id) ? 'changed' : '';
 
         const date = new Date(order.order_time);
         const formattedDate = date.toLocaleString();
@@ -298,8 +363,8 @@
           <div class="order-items">${itemsList}</div>
           ${order.notes ? `<div class="order-notes">Note: ${order.notes}</div>` : ''}
           <div>
-            <span class="badge ${order.status}">${order.status}</span>
-            <span class="payment-badge ${order.payment_status}">${order.payment_status}</span>
+            <span class="badge ${order.status} ${pulse}">${order.status}</span>
+            <span class="payment-badge ${order.payment_status} ${pulse}">${order.payment_status}</span>
           </div>
           ${actionsHTML}
         `;

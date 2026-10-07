@@ -17,6 +17,54 @@
       padding: 20px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes slideInCart {
+      from { opacity: 0; transform: translateX(16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideOutCart {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(24px); }
+    }
+
+    @keyframes qtyBump {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes totalPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes addPress {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(0.88); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes successPop {
+      0%   { opacity: 0; transform: scale(0.9); }
+      60%  { opacity: 1; transform: scale(1.04); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -26,6 +74,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeIn 0.4s ease both;
     }
 
     header h2 {
@@ -52,6 +101,7 @@
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeUp 0.5s ease 0.08s both;
     }
 
     .menu-item {
@@ -60,6 +110,7 @@
       align-items: center;
       padding: 12px 0;
       border-bottom: 1px solid #eee;
+      animation: fadeUp 0.4s ease both;
     }
 
     .menu-item:last-child {
@@ -96,6 +147,10 @@
       background-color: #e85a2a;
     }
 
+    .menu-item button.added {
+      animation: addPress 0.25s ease;
+    }
+
     .cart-section {
       flex: 1;
       background: whitesmoke;
@@ -104,6 +159,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       min-width: 250px;
       height: fit-content;
+      animation: fadeUp 0.5s ease 0.16s both;
     }
 
     .cart-section h3 {
@@ -118,6 +174,20 @@
       padding: 8px 0;
       font-size: 14px;
       border-bottom: 1px solid #eee;
+    }
+
+    /* Only set on rows that are new or whose quantity changed, so other rows stay still */
+    .cart-item.enter {
+      animation: slideInCart 0.3s ease both;
+    }
+
+    .cart-item.bump {
+      transform-origin: left center;
+      animation: qtyBump 0.3s ease;
+    }
+
+    .cart-item.leaving {
+      animation: slideOutCart 0.2s ease forwards;
     }
 
     .cart-item button {
@@ -140,6 +210,15 @@
       font-size: 16px;
     }
 
+    #cartTotal {
+      display: inline-block;
+      transform-origin: right center;
+    }
+
+    #cartTotal.pulse {
+      animation: totalPulse 0.3s ease;
+    }
+
     .place-order-btn {
       width: 100%;
       padding: 12px;
@@ -150,6 +229,7 @@
       border-radius: 6px;
       font-size: 15px;
       cursor: pointer;
+      position: relative;
     }
 
     .place-order-btn:hover {
@@ -161,11 +241,34 @@
       cursor: not-allowed;
     }
 
+    /* Keeps the button green and shows a spinner while the order is being sent */
+    .place-order-btn.loading,
+    .place-order-btn.loading:disabled {
+      background-color: #28a745;
+      color: transparent;
+      cursor: wait;
+    }
+
+    .place-order-btn.loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
     .empty-cart {
       color: #999;
       font-size: 14px;
       text-align: center;
       padding: 20px 0;
+      animation: fadeIn 0.4s ease both;
     }
 
     .success-msg {
@@ -177,6 +280,19 @@
       font-size: 14px;
       text-align: center;
       display: none;
+    }
+
+    .success-msg.show {
+      display: block;
+      animation: successPop 0.4s ease both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 </head>
@@ -214,6 +330,11 @@
     let staff = JSON.parse(localStorage.getItem('staff'));
     let cart = {};
 
+    // What the cart showed last render, so only new or changed rows animate
+    let renderedQty = {};
+    let lastTotal = 0;
+    let successTimer = null;
+
     if (!staff) {
       window.location.href = '/';
     } else {
@@ -233,16 +354,17 @@
         const menuList = document.getElementById('menuList');
         menuList.innerHTML = '';
 
-        items.forEach(item => {
+        items.forEach((item, i) => {
           const div = document.createElement('div');
           div.className = 'menu-item';
+          div.style.animationDelay = `${Math.min(i, 8) * 0.05}s`;
           div.innerHTML = `
             <div class="menu-item-info">
               <h3>${item.name}</h3>
               <p>${item.description || ''}</p>
               <div class="price">₦${item.price.toLocaleString()}</div>
             </div>
-            <button onclick="addToCart(${item.item_id}, '${item.name}', ${item.price})">Add</button>
+            <button onclick="addToCart(${item.item_id}, '${item.name}', ${item.price}, this)">Add</button>
           `;
           menuList.appendChild(div);
         });
@@ -251,18 +373,35 @@
       }
     }
 
-    function addToCart(itemId, name, price) {
+    function addToCart(itemId, name, price, btn) {
       if (cart[itemId]) {
         cart[itemId].quantity += 1;
       } else {
         cart[itemId] = { name, price, quantity: 1 };
       }
+
+      if (btn) {
+        btn.classList.remove('added');
+        void btn.offsetWidth;             // force reflow so the press animation can restart
+        btn.classList.add('added');
+      }
+
       renderCart();
     }
 
     function removeFromCart(itemId) {
-      delete cart[itemId];
-      renderCart();
+      const row = document.querySelector(`.cart-item[data-id="${itemId}"]`);
+      if (row) {
+        row.classList.remove('enter', 'bump');
+        row.classList.add('leaving');
+        setTimeout(() => {
+          delete cart[itemId];
+          renderCart();
+        }, 200);
+      } else {
+        delete cart[itemId];
+        renderCart();
+      }
     }
 
     function renderCart() {
@@ -279,6 +418,14 @@
           const item = cart[itemId];
           const div = document.createElement('div');
           div.className = 'cart-item';
+          div.setAttribute('data-id', itemId);
+
+          if (renderedQty[itemId] === undefined) {
+            div.classList.add('enter');
+          } else if (renderedQty[itemId] !== item.quantity) {
+            div.classList.add('bump');
+          }
+
           div.innerHTML = `
             <span>${item.name} x${item.quantity}</span>
             <div>
@@ -291,14 +438,46 @@
         placeOrderBtn.disabled = false;
       }
 
+      renderedQty = {};
+      keys.forEach(itemId => {
+        renderedQty[itemId] = cart[itemId].quantity;
+      });
+
       let total = 0;
       keys.forEach(itemId => {
         total += cart[itemId].price * cart[itemId].quantity;
       });
-      document.getElementById('cartTotal').textContent = `₦${total.toLocaleString()}`;
+
+      const totalEl = document.getElementById('cartTotal');
+      totalEl.textContent = `₦${total.toLocaleString()}`;
+
+      if (total !== lastTotal) {
+        totalEl.classList.remove('pulse');
+        void totalEl.offsetWidth;
+        totalEl.classList.add('pulse');
+      }
+      lastTotal = total;
+    }
+
+    function showSuccess() {
+      const msg = document.getElementById('successMsg');
+      msg.classList.remove('show');
+      void msg.offsetWidth;
+      msg.classList.add('show');
+
+      clearTimeout(successTimer);
+      successTimer = setTimeout(() => {
+        msg.classList.remove('show');
+      }, 3000);
     }
 
     async function placeOrder() {
+      const placeOrderBtn = document.getElementById('placeOrderBtn');
+
+      // Disabled while sending, which also blocks accidental double orders
+      placeOrderBtn.disabled = true;
+      placeOrderBtn.classList.add('loading');
+
       const items = Object.keys(cart).map(itemId => ({
         item_id: parseInt(itemId),
         quantity: cart[itemId].quantity,
@@ -317,20 +496,26 @@
 
         const data = await response.json();
 
+        placeOrderBtn.classList.remove('loading');
+
         if (response.ok) {
-          document.getElementById('successMsg').style.display = 'block';
+          showSuccess();
           cart = {};
           renderCart();
-          setTimeout(() => {
-            document.getElementById('successMsg').style.display = 'none';
-          }, 3000);
         } else {
+          placeOrderBtn.disabled = false;
           alert(data.error || 'Failed to place order');
         }
       } catch (err) {
+        placeOrderBtn.classList.remove('loading');
+        placeOrderBtn.disabled = false;
         alert('Could not connect to server');
       }
     }
+
+    document.getElementById('cartTotal').addEventListener('animationend', function() {
+      this.classList.remove('pulse');
+    });
 
     loadMenu();
   </script>

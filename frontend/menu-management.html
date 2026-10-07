@@ -27,6 +27,38 @@
       padding: 20px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes rowPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.015); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes slideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(24px); }
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -36,6 +68,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeIn 0.4s ease both;
     }
 
     header h2 { color: #333; }
@@ -62,9 +95,18 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       height: fit-content;
+      animation: fadeUp 0.5s ease 0.08s both;
     }
 
-    .form-section h3 { margin-bottom: 15px; color: #333; }
+    .form-section h3 {
+      margin-bottom: 15px;
+      color: #333;
+      transform-origin: left;
+    }
+
+    .form-section h3.pop {
+      animation: pop 0.35s ease;
+    }
 
     .form-section input,
     .form-section select,
@@ -96,6 +138,7 @@
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeUp 0.5s ease 0.16s both;
     }
 
     .list-section h3 { margin-bottom: 15px; color: #333; }
@@ -111,6 +154,19 @@
     }
 
     .menu-item-row:last-child { border-bottom: none; }
+
+    /* "backwards" (not "both") so the end state doesn't override .unavailable's opacity */
+    .menu-item-row.enter {
+      animation: fadeUp 0.4s ease backwards;
+    }
+
+    .menu-item-row.changed {
+      animation: rowPulse 0.45s ease;
+    }
+
+    .menu-item-row.leaving {
+      animation: slideOut 0.3s ease forwards;
+    }
 
     .item-info h4 { font-size: 15px; color: #333; }
     .item-info p { font-size: 13px; color: #888; margin-top: 2px; }
@@ -142,6 +198,20 @@
     }
     .success-msg { background: #d4edda; color: #155724; }
     .error-msg { background: #f8d7da; color: #721c24; }
+
+    .success-msg.show,
+    .error-msg.show {
+      display: block;
+      animation: msgIn 0.25s ease both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -184,6 +254,11 @@
   <script>
     let staff = JSON.parse(localStorage.getItem('staff'));
 
+    // Remembers what has already been shown so only new or changed items animate
+    const seenItems = new Set();
+    const lastState = {};
+    let messageTimer = null;
+
     if (!staff) {
       window.location.href = '/';
     } else if (staff.role !== 'restaurant_staff' && staff.role !== 'admin') {
@@ -198,22 +273,31 @@
     function showMessage(type, text) {
       const successEl = document.getElementById('successMsg');
       const errorEl = document.getElementById('errorMsg');
-      successEl.style.display = 'none';
-      errorEl.style.display = 'none';
+      successEl.classList.remove('show');
+      errorEl.classList.remove('show');
 
-      if (type === 'success') {
-        successEl.textContent = text;
-        successEl.style.display = 'block';
-      } else {
-        errorEl.textContent = text;
-        errorEl.style.display = 'block';
-      }
+      const target = type === 'success' ? successEl : errorEl;
+      target.textContent = text;
+      void target.offsetWidth;            // force reflow so the animation can restart
+      target.classList.add('show');
 
-      setTimeout(() => {
-        successEl.style.display = 'none';
-        errorEl.style.display = 'none';
+      clearTimeout(messageTimer);
+      messageTimer = setTimeout(() => {
+        successEl.classList.remove('show');
+        errorEl.classList.remove('show');
       }, 3000);
     }
+
+    function popFormTitle() {
+      const title = document.getElementById('formTitle');
+      title.classList.remove('pop');
+      void title.offsetWidth;
+      title.classList.add('pop');
+    }
+
+    document.getElementById('formTitle').addEventListener('animationend', function() {
+      this.classList.remove('pop');
+    });
 
     async function loadMenu() {
       try {
@@ -234,9 +318,24 @@
           return;
         }
 
+        let newCount = 0;
+
         items.forEach(item => {
           const div = document.createElement('div');
           div.className = 'menu-item-row' + (item.is_available === false || item.is_available === 0 ? ' unavailable' : '');
+          div.setAttribute('data-id', item.item_id);
+
+          const state = [item.name, item.category, item.price, item.description, item.is_available].join('|');
+          if (!seenItems.has(item.item_id)) {
+            div.classList.add('enter');
+            div.style.animationDelay = `${Math.min(newCount, 8) * 0.05}s`;
+            newCount++;
+          } else if (lastState[item.item_id] !== state) {
+            div.classList.add('changed');
+          }
+          seenItems.add(item.item_id);
+          lastState[item.item_id] = state;
+
           div.innerHTML = `
             <div class="item-info">
               <h4>${item.name} <span style="font-size:12px; color:#888;">(${item.category || 'Uncategorized'})</span></h4>
@@ -267,6 +366,7 @@
       document.getElementById('itemDescription').value = description;
       document.getElementById('saveBtn').textContent = 'Update Item';
       document.getElementById('cancelBtn').style.display = 'block';
+      popFormTitle();
       window.scrollTo(0, 0);
     }
 
@@ -345,7 +445,17 @@
 
         if (response.ok) {
           showMessage('success', 'Item deleted');
-          loadMenu();
+          seenItems.delete(id);
+          delete lastState[id];
+
+          const row = document.querySelector(`.menu-item-row[data-id="${id}"]`);
+          if (row) {
+            row.classList.remove('enter', 'changed');
+            row.classList.add('leaving');
+            setTimeout(loadMenu, 300);
+          } else {
+            loadMenu();
+          }
         } else {
           showMessage('error', 'Failed to delete item');
         }

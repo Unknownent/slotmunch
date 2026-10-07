@@ -27,6 +27,42 @@
       padding: 20px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes rowPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.015); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes slideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(24px); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -36,6 +72,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeIn 0.4s ease both;
     }
 
     header h2 { color: #333; }
@@ -62,9 +99,18 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       height: fit-content;
+      animation: fadeUp 0.5s ease 0.08s both;
     }
 
-    .form-section h3 { margin-bottom: 15px; color: #333; }
+    .form-section h3 {
+      margin-bottom: 15px;
+      color: #333;
+      transform-origin: left;
+    }
+
+    .form-section h3.pop {
+      animation: pop 0.35s ease;
+    }
 
     .form-section input,
     .form-section select {
@@ -77,6 +123,7 @@
     }
 
     .form-section button {
+      position: relative;
       width: 100%;
       padding: 10px;
       background-color: #28a745;
@@ -90,12 +137,35 @@
 
     .form-section button:hover { background-color: #218838; }
 
+    /* Keeps the save button green and shows a spinner while the request runs */
+    .form-section button.loading,
+    .form-section button.loading:hover {
+      background-color: #28a745;
+      color: transparent;
+      cursor: wait;
+    }
+
+    .form-section button.loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
     .list-section {
       flex: 2;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      animation: fadeUp 0.5s ease 0.16s both;
     }
 
     .list-section h3 { margin-bottom: 15px; color: #333; }
@@ -120,6 +190,19 @@
     }
 
     .staff-row:last-child { border-bottom: none; }
+
+    /* Only set on rows that are new or changed, so typing in the search bar doesn't replay it */
+    .staff-row.enter {
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .staff-row.changed {
+      animation: rowPulse 0.45s ease;
+    }
+
+    .staff-row.leaving {
+      animation: slideOut 0.3s ease forwards;
+    }
 
     .staff-info h4 { font-size: 15px; color: #333; }
     .staff-info p { font-size: 13px; color: #888; margin-top: 2px; }
@@ -162,10 +245,25 @@
     .success-msg { background: #d4edda; color: #155724; }
     .error-msg { background: #f8d7da; color: #721c24; }
 
+    .success-msg.show,
+    .error-msg.show {
+      display: block;
+      animation: msgIn 0.25s ease both;
+    }
+
     .empty-state {
       text-align: center;
       color: #999;
       padding: 40px;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 </head>
@@ -212,6 +310,11 @@
     let staff = JSON.parse(localStorage.getItem('staff'));
     let allStaff = [];
 
+    // Remembers what has already been shown so only new or changed rows animate
+    const seenStaff = new Set();
+    const lastState = {};
+    let messageTimer = null;
+
     if (!staff) {
       window.location.href = '/';
     } else if (staff.role !== 'admin') {
@@ -226,28 +329,37 @@
     function showMessage(type, text) {
       const successEl = document.getElementById('successMsg');
       const errorEl = document.getElementById('errorMsg');
-      successEl.style.display = 'none';
-      errorEl.style.display = 'none';
+      successEl.classList.remove('show');
+      errorEl.classList.remove('show');
 
-      if (type === 'success') {
-        successEl.textContent = text;
-        successEl.style.display = 'block';
-      } else {
-        errorEl.textContent = text;
-        errorEl.style.display = 'block';
-      }
+      const target = type === 'success' ? successEl : errorEl;
+      target.textContent = text;
+      void target.offsetWidth;            // force reflow so the animation can restart
+      target.classList.add('show');
 
-      setTimeout(() => {
-        successEl.style.display = 'none';
-        errorEl.style.display = 'none';
+      clearTimeout(messageTimer);
+      messageTimer = setTimeout(() => {
+        successEl.classList.remove('show');
+        errorEl.classList.remove('show');
       }, 3000);
     }
+
+    function popFormTitle() {
+      const title = document.getElementById('formTitle');
+      title.classList.remove('pop');
+      void title.offsetWidth;
+      title.classList.add('pop');
+    }
+
+    document.getElementById('formTitle').addEventListener('animationend', function() {
+      this.classList.remove('pop');
+    });
 
     async function loadStaff() {
       try {
         const response = await fetch('/api/staff');
         allStaff = await response.json();
-        renderStaff(allStaff);
+        filterStaff();
       } catch (err) {
         document.getElementById('staffList').innerHTML = '<div class="empty-state">Could not load staff. Is the server running?</div>';
       }
@@ -267,14 +379,33 @@
       const container = document.getElementById('staffList');
 
       if (staffList.length === 0) {
-        container.innerHTML = '<div class="empty-state">No staff found</div>';
+        const msg = 'No staff found';
+        const current = container.firstElementChild;
+        // Already showing this message, so skip it and don't replay the fade on every keystroke
+        if (current && current.classList.contains('empty-state') && current.textContent === msg) return;
+        container.innerHTML = `<div class="empty-state">${msg}</div>`;
         return;
       }
 
       container.innerHTML = '';
+      let newCount = 0;
+
       staffList.forEach(member => {
         const div = document.createElement('div');
         div.className = 'staff-row';
+        div.setAttribute('data-id', member.staff_id);
+
+        const state = [member.full_name, member.department, member.role, member.email, member.floor_number].join('|');
+        if (!seenStaff.has(member.staff_id)) {
+          div.classList.add('enter');
+          div.style.animationDelay = `${Math.min(newCount, 8) * 0.05}s`;
+          newCount++;
+        } else if (lastState[member.staff_id] !== state) {
+          div.classList.add('changed');
+        }
+        seenStaff.add(member.staff_id);
+        lastState[member.staff_id] = state;
+
         const roleLabel = member.role === 'restaurant_staff' ? 'Restaurant Staff' : (member.role === 'admin' ? 'Admin' : 'Worker');
         div.innerHTML = `
           <div class="staff-info">
@@ -304,6 +435,7 @@
       document.getElementById('password').value = '';
       document.getElementById('saveBtn').textContent = 'Update Staff';
       document.getElementById('cancelBtn').style.display = 'block';
+      popFormTitle();
       window.scrollTo(0, 0);
     }
 
@@ -323,6 +455,7 @@
     }
 
     async function saveStaff() {
+      const saveBtn = document.getElementById('saveBtn');
       const editId = document.getElementById('editStaffId').value;
       const staffId = document.getElementById('staffId').value.trim();
       const fullName = document.getElementById('fullName').value.trim();
@@ -341,6 +474,10 @@
         showMessage('error', 'Password is required for new staff');
         return;
       }
+
+      // Disabled while sending, which also blocks double taps on a slow connection
+      saveBtn.disabled = true;
+      saveBtn.classList.add('loading');
 
       try {
         let response;
@@ -375,6 +512,9 @@
         }
       } catch (err) {
         showMessage('error', 'Could not connect to server');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('loading');
       }
     }
 
@@ -389,7 +529,18 @@
 
         if (response.ok) {
           showMessage('success', 'Staff member deleted');
-          loadStaff();
+          seenStaff.delete(staffId);
+          delete lastState[staffId];
+
+          const row = Array.from(document.querySelectorAll('.staff-row'))
+            .find(el => el.getAttribute('data-id') === staffId);
+          if (row) {
+            row.classList.remove('enter', 'changed');
+            row.classList.add('leaving');
+            setTimeout(loadStaff, 300);
+          } else {
+            loadStaff();
+          }
         } else {
           showMessage('error', 'Failed to delete staff member');
         }
